@@ -2,7 +2,7 @@
 
 # Databricks AI Systems - Agentes de IA 
 
-## Objective
+## Objectivo
 
 Los LLM son excelentes para responder preguntas generales. Sin embargo, la inteligencia general por sí sola no es suficiente para ofrecer valor a sus clientes.
 
@@ -12,24 +12,27 @@ Los sistemas de IA componibles están diseñados para responder a este desafío.
 
 En un nivel alto, usted crea y presenta un conjunto de funciones personalizadas a la IA. Luego, el LLM puede razonar al respecto, decidir qué herramienta se debe utilizar y recopilar información para responder a las necesidades del cliente.
 
-## Key Features
+## Características clave
 
 - Cree y almacene sus funciones (herramientas) aprovechando UC
-- Ejecutar las funciones de forma segura.
+- Ejecute las funciones de forma segura.
 - Razone sobre las herramientas que seleccionó y encadenélas para responder adecuadamente a su pregunta.
 
-## Disclaimer
+## Requisitos
 
 - Se requiere Unity Catalog
 - Se requiere la creación de Vector Search
 - Se requiere la utilización de LLMs
 
-## Implementation Details
+## Detalles de la implementación
 
 <img src="https://github.com/mousastech/agentes_ia/blob/e4602f57c4a83b171c7c541e11244136cdd80816/img/llm-call.png?raw=true" width="100%">
 
-## Setup and Usage
+## Setup y uso
 
-1. Hacer el setup de las tablas (si aún no ha hecho) - notebook **Setup**
-2. Correr el notebook para la creación de los componentes
-3. Crear los índices en el Vector Search
+1. Hacer el setup de las tablas (si aún no lo ha hecho) - notebook **⚙️ Setup**
+2. Ejecutar el notebook **🚀 1. AI Functions** para usar las [AI Functions](https://docs.databricks.com/en/large-language-models/ai-functions.html)
+
+Estas funciones nos permiten ejecutar modelos de IA generativa en nuestras bases de datos corporativas directamente en consultas SQL, un lenguaje ampliamente utilizado por analistas de datos y negocios. Con esto también podremos crear nuevas tablas con la información extraída para utilizarla en nuestros análisis.
+
+3. Ejecutar el notebook **🛠️ 2. Agentes de IA** para la creación del agente
