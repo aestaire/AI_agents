@@ -28,7 +28,7 @@
 -- MAGIC %md
 -- MAGIC ## Preparación
 -- MAGIC
--- MAGIC Para realizar los ejercicios, necesitamos prende un Clúster.
+-- MAGIC Para realizar los ejercicios, necesitamos prender un Clúster.
 -- MAGIC
 -- MAGIC Simplemente siga los pasos a continuación:
 -- MAGIC 1. En la esquina superior derecha, haga clic en **Conectar**
@@ -126,7 +126,7 @@ SELECT ai_translate(avaliacao, 'es') texto FROM resenas LIMIT 10
 -- COMMAND ----------
 
 -- DBTITLE 1,Uso de ai_translate en una función
-SELECT  *, ai_translate(avaliacao, 'es') AS sentimento FROM resenas LIMIT 10
+SELECT  *, ai_translate(avaliacao, 'es') AS resena FROM resenas LIMIT 10
 
 -- COMMAND ----------
 

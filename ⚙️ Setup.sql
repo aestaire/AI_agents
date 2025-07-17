@@ -1,6 +1,7 @@
 -- Databricks notebook source
 -- MAGIC %md
--- MAGIC <img src="https://github.com/mousastech/iafunciones/blob/fd139cf6a61d68b2858b91907d3885cce238cf5d/img/headertools_aifunctions.png?raw=true" width=100%>
+-- MAGIC <img src="https://github.com/aestaire/AI_agents/blob/main/img/headertools_aiagents.png?raw=true" width=100%>
+-- MAGIC
 -- MAGIC
 -- MAGIC Ejecutar solo en el momento de la creación para generar un catálogo de pruebas y tablas utilizadas en este laboratorio.
 
