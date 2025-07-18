@@ -59,7 +59,7 @@
 
 -- COMMAND ----------
 
-USE agents_ia_andrea.atencion
+USE agents_ia.atencion
 
 -- COMMAND ----------
 
@@ -121,17 +121,17 @@ WHERE avaliacao IS NOT NULL
 -- COMMAND ----------
 
 -- DBTITLE 1,Ejemplo
-SELECT ai_translate(avaliacao, 'es') texto FROM resenas LIMIT 10
+SELECT ai_translate(avaliacao, 'es') texto FROM resenas LIMIT 5
 
 -- COMMAND ----------
 
 -- DBTITLE 1,Uso de ai_translate en una función
-SELECT  *, ai_translate(avaliacao, 'es') AS resena FROM resenas LIMIT 10
+SELECT  *, ai_translate(avaliacao, 'es') AS resena FROM resenas LIMIT 5
 
 -- COMMAND ----------
 
 -- DBTITLE 1,Crear tabla de reseñas traducida
-CREATE TABLE resenas_es as 
+CREATE OR REPLACE TABLE resenas_es as 
 SELECT data as fecha,
        id_avaliacao as id_resena,
        id_cliente,
@@ -143,29 +143,13 @@ FROM resenas
 
 -- COMMAND ----------
 
-select * from resenas_es LIMIT 10
-
--- COMMAND ----------
-
--- MAGIC %md #### 🔎 Extracción de los productos mencionados
-
--- COMMAND ----------
-
-SELECT *, ai_extract(resena, ARRAY('producto')) AS productos FROM resenas_es LIMIT 10
+select * from resenas_es LIMIT 5
 
 -- COMMAND ----------
 
 -- MAGIC %md ####  🔎 Extrayendo el motivo de la insatisfacción.
 -- MAGIC
 -- MAGIC *SUGERENCIA: Utilice la función AI_QUERY() para proporcionar un mensaje personalizado*
-
--- COMMAND ----------
-
--- DBTITLE 1,Para checar el idioma
-SELECT *, ai_query(
-  'databricks-meta-llama-3-3-70b-instruct',
-  concat('Si el sentimiento de evaluación es negativo, enumere los motivos de la insatisfacción en español. Evaluación: ', avaliacao)) AS motivo_insatisfaccion
-FROM resenas LIMIT 10
 
 -- COMMAND ----------
 
@@ -185,7 +169,7 @@ FROM resenas_es LIMIT 10
 -- MAGIC
 -- MAGIC Para simplificar el acceso a esta inteligencia, crearemos una función SQL para encapsular este proceso y poder informar simplemente a qué columna de nuestro conjunto de datos nos gustaría aplicarlo.
 -- MAGIC
--- MAGIC ¡Aquí, aprovechemos para enviar una única consulta a nuestro modelo para extraer toda la información de una vez!
+-- MAGIC ¡Aquí, aprovechamos para enviar una única consulta a nuestro modelo para extraer toda la información de una vez!
 -- MAGIC
 -- MAGIC <img src="https://raw.githubusercontent.com/databricks-demos/dbdemos-resources/main/images/product/sql-ai-functions/sql-ai-query-function-review-wrapper.png" width="1200px">
 
@@ -195,66 +179,38 @@ FROM resenas_es LIMIT 10
 
 -- COMMAND ----------
 
-CREATE OR REPLACE FUNCTION revisar_resena(resena STRING)
-RETURNS STRUCT<nombre_producto: STRING, sentimiento: STRING, respuesta: STRING, resposta_motivo: STRING>
+CREATE OR REPLACE FUNCTION revisar_resena_es(resena STRING)
+RETURNS STRUCT<nombre_producto: STRING, sentimiento: STRING, respuesta: STRING, respuesta_motivo: STRING>
 RETURN FROM_JSON(
-    AI_QUERY(
-        'databricks-meta-llama-3-1-405b-instruct',
-        CONCAT(
-            'Um cliente fez uma avaliação. Respondemos a todos que parecem insatisfeitos.
-            Extraia a seguinte informação:
-            - classifique o sentimento como ["POSITIVO","NEGATIVO","NEUTRAL"]
-            - retorne se o sentimento é NEGATIVO e precisa resposta: S ou N
-            - se o sentimento é NEGATIVO, explique quais são os principais motivos
-            Retorne apenas um JSON. Nenhum outro texto fora do JSON. Formato do JSON:
-            {
-              "nombre_producto": <nome entidade>,
-              "sentimiento": <sentimento entidade>,
-              "respuesta": <S ou N para resposta>,
-              "resposta_motivo": <motivos de insatisfação>
-            }
-            Avaliação: ', resena
-        )
-    ),
-    "STRUCT<nombre_producto: STRING, sentimiento: STRING, respuesta: STRING, resposta_motivo: STRING>"
+  AI_QUERY(
+    'databricks-meta-llama-3-1-405b-instruct',
+    CONCAT(
+      'Eres un asistente para análisis de reseñas de clientes. Respondemos a cualquiera que parezca insatisfecho. 
+      Extrae la siguiente información de la reseña:
+        - extraer el producto
+        - clasificar el sentimiento como ["POSITIVO","NEGATIVO","NEUTRAL"]
+        - regresar si el sentimiento es NEGATIVO y necesita una respuesta: S o N
+        - si el sentimiento es NEGATIVO, enumere los motivos de la insatisfacción
+      Devuelve SOLO un JSON en una sola línea, exactamente con los siguientes campos (sin comentarios ni texto adicional):
+      {
+        "nombre_producto": <nombre del producto extraído>, 
+        "sentimiento": <entidad sentimiento>, 
+        "respuesta": "S" o "N" (solo S si el sentimiento es NEGATIVO y necesita respuesta, de lo contrario N), 
+        "respuesta_motivo": <explicación solo si corresponde de las razones principales>
+      } 
+      Reseña: ', resena
+    )
+  ),
+  "STRUCT<nombre_producto: STRING, sentimiento: STRING, respuesta: STRING, respuesta_motivo: STRING>"
 )
 
 -- COMMAND ----------
 
--- DBTITLE 1,Optional
---Se quieres, puedes cambiar a Español
-
- AI_QUERY(
-    'databricks-meta-llama-3-1-405b-instruct',
-    CONCAT(
-      'Un cliente dejó una reseña. Respondemos a cualquiera que parezca insatisfecho.
-        Extraiga la siguiente información:
-        - extraer el producto
-        - extraer la categoría del producto, por ejemplo: tableta, portátil, teléfono inteligente
-        - clasificar el sentimiento como ["POSITIVO","NEGATIVO","NEUTRAL"]
-        - regresar si el sentimiento es NEGATIVO y necesita una respuesta: S o N
-        - si el sentimiento es NEGATIVO, explica las razones principales
-        Devuelve solo un JSON. Ningún otro texto que no sea JSON. Formato JSON:
-      {
-        "nombre_producto": <entidade nombre>,
-        "producto_categoria": <entidade categoria>,
-        "sentimiento": <entidade sentimiento>,
-        "respuesta": <S o N para respuestas>,
-        "motivo": <razones de la insatisfacción>
-      }
-      Evaluación: ', resena
-    )
-  )
-  "STRUCT<nombre_producto: STRING, sentimiento: STRING, respuesta: STRING, resposta_motivo: STRING>"
-  )
+-- MAGIC %md #### ✔️ Probando la función con una reseña
 
 -- COMMAND ----------
 
--- MAGIC %md #### ✔️ Análisis de revisión de pruebas
-
--- COMMAND ----------
-
-SELECT revisar_resena('Compré el portátil ABC y estoy muy insatisfecho con la calidad de la pantalla. Los colores son débiles y la resolución es baja. Además, el rendimiento es lento y se bloquea con frecuencia. ¡No lo recomiendo!') AS resultado
+SELECT revisar_resena_es('Compré el portátil ABC y estoy muy insatisfecho con la calidad de la pantalla. Los colores son débiles y la resolución es baja. Además, el rendimiento es lento y se bloquea con frecuencia. ¡No lo recomiendo!') AS resultado
 
 -- COMMAND ----------
 
@@ -262,15 +218,14 @@ SELECT revisar_resena('Compré el portátil ABC y estoy muy insatisfecho con la 
 
 -- COMMAND ----------
 
--- DBTITLE 1,Crear una tabela de reseñas revisadas
+-- DBTITLE 1,Crear una tabla de reseñas revisadas
 CREATE OR REPLACE TABLE resenas_revisadas AS
 SELECT *, resultado.* FROM (
-  SELECT *, revisar_resena(resena) as resultado FROM agents_ia.atencion.resenas_es LIMIT 10)
+  SELECT *, revisar_resena_es(resena) as resultado FROM agents_ia.atencion.resenas_es LIMIT 10)
 
 -- COMMAND ----------
 
--- DBTITLE 1,Pruebar la función
-SELECT *, revisar_resena(resena) as resultado FROM resenas_es limit 5
+SELECT * FROM resenas_revisadas LIMIT 10
 
 -- COMMAND ----------
 
@@ -315,8 +270,9 @@ RETURN SELECT AI_QUERY(
 
 -- COMMAND ----------
 
+--Filtramos por las criticas negativas (respuesta = 'S')
 CREATE OR REPLACE TABLE respuestas AS
-WITH avaliacoes_enriq AS (
+WITH resenas_enriq AS (
   SELECT a.*, c.* EXCEPT (c.id_cliente) 
   FROM resenas_revisadas a 
   LEFT JOIN clientes c 
@@ -327,18 +283,17 @@ WITH avaliacoes_enriq AS (
 
 SELECT 
   *, 
-  (SELECT * FROM genere_respuesta(e.nome, e.sobrenome, e.num_pedidos, e.nombre_producto, e.resposta_motivo)) AS bosquejo 
-FROM avaliacoes_enriq e
+  (SELECT * FROM genere_respuesta(e.nome, e.sobrenome, e.num_pedidos, e.nombre_producto, e.motivo_insatisfaccion)) AS respuesta_automatica 
+FROM resenas_enriq e
 
 -- COMMAND ----------
 
--- DBTITLE 1,Revisar el bosquejo
-SELECT bosquejo from respuestas
+SELECT id_resena, id_cliente, resena, sentimiento, nome, sobrenome, respuesta_automatica FROM respuestas LIMIT 5
 
 -- COMMAND ----------
 
 -- MAGIC %md # ¡Felicidades!
 -- MAGIC
--- MAGIC ¡Ha completado la práctica de laboratorio de **Extracción de información y generación de texto**!
+-- MAGIC ¡Ha completado la práctica de laboratorio de **Funciones de IA**!
 -- MAGIC
--- MAGIC ¡Ahora ya sabe cómo utilizar funciones de IA para analizar sentimientos e identificar entidades en reseñas de productos de una manera simple y escalable!
+-- MAGIC ¡Ahora ya sabe cómo utilizar funciones de IA para analizar sentimientos, identificar entidades en reseñas de productos de una manera simple y escalable, y generar respuestas automaticas a las reseñas negativas!
